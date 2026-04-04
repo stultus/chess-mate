@@ -305,3 +305,27 @@ describe("null move pruning sanity", () => {
     expect(["e2e4", "d2d4", "c2c4", "g1f3"]).toContain(topAlg);
   });
 });
+
+describe("endgame passed pawn race", () => {
+  function makeBoard(rows) {
+    const b = Array.from({length: 8}, () => Array(8).fill(""));
+    for (const [r, c, p] of rows) b[r][c] = p;
+    return b;
+  }
+
+  it("values black's unstoppable d-pawn as decisive disadvantage for white", () => {
+    // Position roughly from move 47 of a real losing game:
+    // Black has a d-pawn on the 5th rank, black king supporting it,
+    // white king too far to catch it. Black's pawn is unstoppable.
+    const board = makeBoard([
+      [3, 7, "K"],  // White king on h5 (far from d-pawn)
+      [5, 3, "p"],  // Black pawn on d3 (2 squares from promoting)
+      [6, 2, "k"],  // Black king on c2 (supporting the pawn)
+    ]);
+    const score = evaluate(board, "w");
+    // White is evaluated from white's perspective. A decisive black advantage
+    // should yield a significantly negative score.
+    // Unstoppable pawn gets +500 bonus for black, so white should be deeply negative.
+    expect(score).toBeLessThan(-300);
+  });
+});
