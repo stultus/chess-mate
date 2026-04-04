@@ -3,14 +3,110 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chess Mate</title>
+    <meta name="theme-color" content="#302e2b" />
+
+    <title>Chess Mate — Free Chess Move Analyzer & Learning Companion</title>
+    <meta name="description" content="Free chess companion that analyzes positions and suggests the best moves in real time. Learn chess with a built-in engine — king safety, tactical search, opening book. Plays in your browser, no signup." />
+    <meta name="keywords" content="chess analyzer, chess engine, chess move suggestions, chess learning, chess companion, free chess analyzer, chess training, chess position evaluation, chess ai, learn chess, chess tool, online chess analyzer, chess coach" />
+    <meta name="author" content="Hrishikesh Bhaskaran" />
+    <link rel="canonical" href="https://stultus.in/chess-mate/" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://stultus.in/chess-mate/" />
+    <meta property="og:title" content="Chess Mate — Free Chess Move Analyzer" />
+    <meta property="og:description" content="Analyze chess positions and get real-time move suggestions. Built-in engine with king safety, tactical search, and opening book. Free, no signup, runs in your browser." />
+    <meta property="og:image" content="https://stultus.in/chess-mate/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Chess Mate" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://stultus.in/chess-mate/" />
+    <meta name="twitter:title" content="Chess Mate — Free Chess Move Analyzer" />
+    <meta name="twitter:description" content="Analyze chess positions and get real-time move suggestions. Built-in engine, opening book, king safety. Free, no signup." />
+    <meta name="twitter:image" content="https://stultus.in/chess-mate/og-image.svg" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/chess-mate/favicon.svg" />
+    <link rel="apple-touch-icon" href="/chess-mate/favicon.svg" />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Chess Mate",
+      "alternateName": "Chess Mate — Move Analyzer",
+      "description": "Free chess companion that analyzes positions and suggests moves in real time. Built-in chess engine with king safety evaluation, tactical search, and opening book.",
+      "url": "https://stultus.in/chess-mate/",
+      "applicationCategory": "GameApplication",
+      "applicationSubCategory": "Chess",
+      "operatingSystem": "Any (runs in web browser)",
+      "browserRequirements": "Requires JavaScript and Web Workers",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Hrishikesh Bhaskaran",
+        "url": "https://stultus.in"
+      },
+      "featureList": [
+        "Real-time move analysis",
+        "Alpha-beta search with quiescence and iterative deepening",
+        "King safety evaluation",
+        "Passed pawn endgame evaluation",
+        "Opening book with common lines",
+        "Copy game as PGN",
+        "Pawn promotion picker",
+        "No signup, no ads, runs entirely in browser"
+      ]
+    }
+    </script>
+
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #302e2b; }
+      body { background: #302e2b; color: #e8e6e1; font-family: "Segoe UI", system-ui, sans-serif; }
+      .seo-intro { max-width: 720px; margin: 0 auto; padding: 40px 24px; line-height: 1.6; }
+      .seo-intro h1 { font-size: 32px; margin-bottom: 8px; }
+      .seo-intro .tagline { color: #9b9b9b; font-family: monospace; font-size: 13px; letter-spacing: 1px; margin-bottom: 24px; }
+      .seo-intro h2 { font-size: 20px; margin-top: 28px; margin-bottom: 12px; color: #e8e6e1; }
+      .seo-intro p { color: #bbb; margin-bottom: 12px; }
+      .seo-intro ul { color: #bbb; padding-left: 20px; }
+      .seo-intro li { margin-bottom: 6px; }
+      .seo-intro .loading { text-align: center; color: #666; font-size: 13px; margin-top: 32px; font-family: monospace; }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="seo-intro">
+        <h1>Chess Mate</h1>
+        <p class="tagline">FREE CHESS MOVE ANALYZER &amp; LEARNING COMPANION</p>
+        <p>Chess Mate is a free chess companion that analyzes positions and suggests the best moves in real time. Play against a friend, study your own games, or learn new openings — everything runs in your browser with no signup, no ads, and no data leaving your device.</p>
+
+        <h2>How it works</h2>
+        <p>Choose white or black, then play moves on the board for both sides. On every turn, Chess Mate evaluates the position and suggests the top five moves with their centipawn scores. Hover any suggestion to preview it on the board, click to play it.</p>
+
+        <h2>What's inside the engine</h2>
+        <ul>
+          <li>Alpha-beta search with quiescence, iterative deepening to depth 8+</li>
+          <li>Check extensions, null move pruning, late move reductions, killer-move ordering</li>
+          <li>King safety: pawn shield, open files, multi-attacker danger table</li>
+          <li>Passed pawn scoring: king proximity, rule of the square, connected/protected bonuses</li>
+          <li>Middlegame/endgame phase interpolation for accurate evaluation</li>
+          <li>Opening book with common theoretical lines (Ruy Lopez, Sicilian, Queen's Gambit, King's Indian, and more)</li>
+        </ul>
+
+        <h2>Who it's for</h2>
+        <p>Chess learners who want to understand why a move is good, players analyzing their own games without installing software, and anyone looking for a distraction-free chess tool that respects their time and privacy.</p>
+
+        <p class="loading">Loading interactive board...</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
