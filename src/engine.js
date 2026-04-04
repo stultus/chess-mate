@@ -55,6 +55,25 @@ export function evaluatePawnShield(board, kingSq, side) {
   return penalty;
 }
 
+export function evaluateOpenFilesNearKing(board, kingSq, side) {
+  const [, kc] = kingSq;
+  const friendlyPawn = side === "w" ? "P" : "p";
+  const enemyPawn = side === "w" ? "p" : "P";
+
+  let penalty = 0;
+  for (const f of [kc - 1, kc, kc + 1]) {
+    if (f < 0 || f > 7) continue;
+    let hasFriendly = false, hasEnemy = false;
+    for (let r = 0; r < 8; r++) {
+      if (board[r][f] === friendlyPawn) hasFriendly = true;
+      if (board[r][f] === enemyPawn) hasEnemy = true;
+    }
+    if (!hasFriendly && !hasEnemy) penalty -= 25;
+    else if (!hasFriendly) penalty -= 15;
+  }
+  return penalty;
+}
+
 const PST = {
   p: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,27,27,10,5,5,0,0,0,25,25,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-25,-25,10,10,5,0,0,0,0,0,0,0,0],
   n: [-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50],

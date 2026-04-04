@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield } from "./engine.js";
+import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing } from "./engine.js";
 
 describe("engine smoke test", () => {
   it("finds kings on initial board", () => {
@@ -87,5 +87,42 @@ describe("evaluatePawnShield", () => {
       [0, 6, "k"], [1, 5, "p"], [1, 6, "p"], [1, 7, "p"]
     ]);
     expect(evaluatePawnShield(board, [0, 6], "b")).toBe(0);
+  });
+});
+
+describe("evaluateOpenFilesNearKing", () => {
+  function makeBoard(rows) {
+    const b = Array.from({length: 8}, () => Array(8).fill(""));
+    for (const [r, c, p] of rows) b[r][c] = p;
+    return b;
+  }
+
+  it("returns 0 for king with all files covered by friendly pawns", () => {
+    const board = makeBoard([
+      [7, 6, "K"], [6, 5, "P"], [6, 6, "P"], [6, 7, "P"]
+    ]);
+    expect(evaluateOpenFilesNearKing(board, [7, 6], "w")).toBe(0);
+  });
+
+  it("penalizes semi-open file (no friendly pawn, enemy pawn present)", () => {
+    const board = makeBoard([
+      [7, 6, "K"], [6, 5, "P"], [3, 6, "p"], [6, 7, "P"]
+    ]);
+    // g-file has no friendly pawn but has enemy pawn = -15
+    expect(evaluateOpenFilesNearKing(board, [7, 6], "w")).toBe(-15);
+  });
+
+  it("penalizes fully open file", () => {
+    const board = makeBoard([
+      [7, 6, "K"], [6, 5, "P"], [6, 7, "P"]
+    ]);
+    // g-file fully open = -25
+    expect(evaluateOpenFilesNearKing(board, [7, 6], "w")).toBe(-25);
+  });
+
+  it("stacks penalties across files", () => {
+    const board = makeBoard([[7, 6, "K"]]);
+    // f, g, h files all fully open = -75
+    expect(evaluateOpenFilesNearKing(board, [7, 6], "w")).toBe(-75);
   });
 });
