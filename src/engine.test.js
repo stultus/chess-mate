@@ -311,6 +311,27 @@ describe("null move pruning sanity", () => {
     const topAlg = analysis[0].alg;
     expect(["e2e4", "d2d4", "c2c4", "g1f3"]).toContain(topAlg);
   });
+
+  it("returns finite eval scores (regression: -Infinity bug)", () => {
+    // Mid-game position after: 1.c4 e5 2.d4 exd4 3.Qxd4 Bb4+ 4.Qd2 c5 5.Qxb4 cxb4
+    // White to move, black pawn on b4 just captured white queen
+    const board = [
+      ["r","n","b","q","k","","n","r"],
+      ["p","p","","","","p","p","p"],
+      ["","","","","","","",""],
+      ["","","","","","","",""],
+      ["","p","P","","","","",""],
+      ["","","","","","","",""],
+      ["P","P","","","P","P","P","P"],
+      ["R","N","B","","K","B","N","R"],
+    ];
+    const analysis = analyzePosition(board, "w", null, {wK:true,wQ:true,bK:true,bQ:true}, ["x"]);
+    expect(analysis.length).toBeGreaterThan(0);
+    // Every suggested move should have a finite eval
+    for (const a of analysis) {
+      expect(Number.isFinite(a.eval)).toBe(true);
+    }
+  });
 });
 
 describe("endgame passed pawn race", () => {

@@ -671,6 +671,11 @@ let _nodeCount = 0;
 let _searchStart = 0;
 let _searchTimeLimit = 0;
 
+// Finite "infinity" score for search bounds. Real mate scores are around
+// ±99999, so this stays safely above them while avoiding JS Infinity
+// arithmetic (e.g. -Infinity + 1 === -Infinity, which breaks null-move
+// pruning's zero-window construction at the root).
+const MATE_SCORE = 1000000;
 const MAX_PLY = 64;
 let _killers = null;
 
@@ -845,7 +850,7 @@ function searchBestMoves(board, side, ep, cast, tl = 3000) {
       updateCastling(nc, board, m);
       const opp = side === "w" ? "b" : "w";
       const undo = makeMove(board, m);
-      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc, 0, true, 1);
+      const child = alphaBeta(board, d - 1, -MATE_SCORE, MATE_SCORE, opp, nep, nc, 0, true, 1);
       unmakeMove(board, undo);
       if (_searchAborted) break;
       evs.push({ move: m, score: -child.score });
