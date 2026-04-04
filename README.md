@@ -69,3 +69,11 @@ regression tests for known bugs.
 ## Deployment
 
 Deployed automatically to GitHub Pages via GitHub Actions on push to `main`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Third-party assets (chess piece SVGs by Cburnett, piece-square tables from
+Tomasz Michniewski, king-safety table from CPW-Engine) are licensed under
+CC-BY-SA 3.0. See [NOTICE.md](NOTICE.md) for attributions.
