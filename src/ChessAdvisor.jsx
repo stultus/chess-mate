@@ -92,6 +92,7 @@ export default function ChessAdvisor() {
   const [gameStatus, setGameStatus] = useState("active");
   const [lastMove, setLastMove] = useState(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [copied, setCopied] = useState(false);
   const moveListRef = useRef(null);
   const workerRef = useRef(null);
   const analysisIdRef = useRef(0);
@@ -386,7 +387,18 @@ export default function ChessAdvisor() {
 
           {/* Move History */}
           <div style={{ background: "#262421", border: "1px solid #3c3a37", borderRadius: 4, padding: 14, maxHeight: 170, overflow: "hidden" }}>
-            <div style={{ fontSize: 11, fontFamily: "monospace", letterSpacing: 1.5, color: "#888", marginBottom: 8, textTransform: "uppercase" }}>Move History</div>
+            <div style={{ fontSize: 11, fontFamily: "monospace", letterSpacing: 1.5, color: "#888", marginBottom: 8, textTransform: "uppercase", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Move History</span>
+              {moveList.length > 0 && gameStatus !== "active" && (
+                <button onClick={() => {
+                  const pgn = moveList.reduce((s, m) => s + (m.turn === "w" ? `${m.moveNum}. ` : "") + m.san + " ", "").trim();
+                  const result = gameStatus === "white_wins" ? "1-0" : gameStatus === "black_wins" ? "0-1" : "1/2-1/2";
+                  navigator.clipboard.writeText(pgn + " " + result).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+                }} style={{ background: copied ? "rgba(129,182,76,0.15)" : "#3c3a37", border: "1px solid #555", color: copied ? "#81b64c" : "#bbb", padding: "2px 8px", borderRadius: 3, cursor: "pointer", fontSize: 10, fontFamily: "monospace", letterSpacing: 0.5, transition: "all 0.2s" }}>
+                  {copied ? "Copied!" : "Copy PGN"}
+                </button>
+              )}
+            </div>
             <div ref={moveListRef} style={{ maxHeight: 120, overflowY: "auto", fontFamily: "monospace", fontSize: 13 }}>
               {moveList.length === 0 ? <span style={{ color: "#555" }}>No moves yet.</span> : (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 0" }}>{moveList.map((m, i) => (
