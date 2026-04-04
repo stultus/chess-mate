@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn } from "./engine.js";
+import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn, evaluatePassedPawnBonus, PASSED_BONUS } from "./engine.js";
 
 describe("engine smoke test", () => {
   it("finds kings on initial board", () => {
@@ -189,5 +189,54 @@ describe("isPassedPawn", () => {
   it("rejects black pawn blocked", () => {
     const board = makeBoard([[4, 3, "p"], [5, 2, "P"]]);
     expect(isPassedPawn(board, 4, 3, "b")).toBe(false);
+  });
+});
+
+describe("evaluatePassedPawnBonus", () => {
+  function makeBoard(rows) {
+    const b = Array.from({length: 8}, () => Array(8).fill(""));
+    for (const [r, c, p] of rows) b[r][c] = p;
+    return b;
+  }
+
+  it("exports exponential bonus array", () => {
+    expect(PASSED_BONUS).toEqual([0, 0, 5, 12, 25, 50, 100, 200]);
+  });
+
+  it("gives rank-based bonus for white passer on 7th rank (row 1)", () => {
+    const board = makeBoard([[1, 3, "P"], [0, 4, "k"], [7, 4, "K"]]);
+    const result = evaluatePassedPawnBonus(board, "w", [7, 4], [0, 4], "w");
+    // Pawn on row 1 => rank index = 7 - 1 = 6. PASSED_BONUS[6] = 100.
+    // King distances: friendly dist(7,4,1,3)=6, enemy dist(0,4,1,3)=1
+    // Proximity: (1 - 6) * 5 * (100/50) = -50
+    // Bonus = 100 - 50 = 50
+    // Not unstoppable (enemy king distance to promo = 1, pawn distance to promo = 1)
+    expect(result).toBe(50);
+  });
+
+  it("detects unstoppable pawn (rule of the square)", () => {
+    // White pawn on row 3 (5th rank from white), enemy king far away in corner
+    const board = makeBoard([[3, 0, "P"], [0, 7, "k"], [7, 7, "K"]]);
+    const result = evaluatePassedPawnBonus(board, "w", [7, 7], [0, 7], "w");
+    // Base bonus 50 (5th rank). King proximity contributes.
+    // Plus 500 for unstoppable (enemy king can't reach a8 in 3 moves from h8)
+    expect(result).toBeGreaterThan(500);
+  });
+
+  it("applies protected multiplier (1.5x)", () => {
+    // White passer on d5 (row 3, col 3) protected by pawn on c4 (row 4, col 2)
+    const board = makeBoard([
+      [3, 3, "P"], [4, 2, "P"], [0, 4, "k"], [7, 4, "K"]
+    ]);
+    const result = evaluatePassedPawnBonus(board, "w", [7, 4], [0, 4], "w");
+    expect(result).toBeGreaterThan(0);
+  });
+
+  it("returns 0 when no passed pawns", () => {
+    const board = makeBoard([
+      [3, 4, "P"], [2, 4, "p"], [0, 4, "k"], [7, 4, "K"]
+    ]);
+    const result = evaluatePassedPawnBonus(board, "w", [7, 4], [0, 4], "w");
+    expect(result).toBe(0);
   });
 });

@@ -101,6 +101,69 @@ export function isPassedPawn(board, r, c, side) {
   return true;
 }
 
+export const PASSED_BONUS = [0, 0, 5, 12, 25, 50, 100, 200];
+
+function pieceAtCanIntercept(board, side) {
+  // Returns true if enemy has any non-king, non-pawn piece that could potentially intercept
+  const enemyNonKingNonPawn = side === "w" ? /[nbrq]/ : /[NBRQ]/;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    if (board[r][c] && enemyNonKingNonPawn.test(board[r][c])) return true;
+  }
+  return false;
+}
+
+function isProtectedPawn(board, r, c, side) {
+  const friendlyPawn = side === "w" ? "P" : "p";
+  const defRow = side === "w" ? r + 1 : r - 1;
+  if (defRow < 0 || defRow > 7) return false;
+  if (c > 0 && board[defRow][c - 1] === friendlyPawn) return true;
+  if (c < 7 && board[defRow][c + 1] === friendlyPawn) return true;
+  return false;
+}
+
+function isConnectedPawn(board, r, c, side) {
+  // Friendly passer on adjacent file within 1 rank
+  const friendlyPawn = side === "w" ? "P" : "p";
+  for (const dc of [-1, 1]) {
+    const cc = c + dc;
+    if (cc < 0 || cc > 7) continue;
+    for (const dr of [-1, 0, 1]) {
+      const rr = r + dr;
+      if (rr < 0 || rr > 7) continue;
+      if (board[rr][cc] === friendlyPawn && isPassedPawn(board, rr, cc, side)) return true;
+    }
+  }
+  return false;
+}
+
+export function evaluatePassedPawnBonus(board, side, friendlyKingSq, enemyKingSq, sideToMove) {
+  const friendlyPawn = side === "w" ? "P" : "p";
+  let total = 0;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    if (board[r][c] !== friendlyPawn) continue;
+    if (!isPassedPawn(board, r, c, side)) continue;
+    const rank = side === "w" ? 7 - r : r;
+    let bonus = PASSED_BONUS[rank];
+    // Multipliers
+    if (isProtectedPawn(board, r, c, side)) bonus = Math.round(bonus * 1.5);
+    if (isConnectedPawn(board, r, c, side)) bonus = Math.round(bonus * 1.3);
+    // King proximity
+    const friendlyDist = chebyshevDistance(friendlyKingSq[0], friendlyKingSq[1], r, c);
+    const enemyDist = chebyshevDistance(enemyKingSq[0], enemyKingSq[1], r, c);
+    const rankFactor = PASSED_BONUS[rank] / 50;
+    const proximity = (enemyDist - friendlyDist) * 5 * rankFactor;
+    // Rule of the square
+    const promoRow = side === "w" ? 0 : 7;
+    const promoCol = c;
+    const distToPromo = Math.abs(promoRow - r);
+    const enemyKingDistToPromo = chebyshevDistance(enemyKingSq[0], enemyKingSq[1], promoRow, promoCol);
+    const tempo = sideToMove === side ? 0 : 1;
+    const unstoppable = (enemyKingDistToPromo - tempo) > distToPromo && !pieceAtCanIntercept(board, side);
+    total += bonus + Math.round(proximity) + (unstoppable ? 500 : 0);
+  }
+  return total;
+}
+
 const PST = {
   p: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,27,27,10,5,5,0,0,0,25,25,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-25,-25,10,10,5,0,0,0,0,0,0,0,0],
   n: [-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50],
