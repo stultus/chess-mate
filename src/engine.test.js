@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn, evaluatePassedPawnBonus, PASSED_BONUS, evaluate } from "./engine.js";
+import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn, evaluatePassedPawnBonus, PASSED_BONUS, evaluate, analyzePosition } from "./engine.js";
 
 describe("engine smoke test", () => {
   it("finds kings on initial board", () => {
@@ -273,5 +273,25 @@ describe("evaluate with new terms", () => {
       [7, 4, "K"], [1, 0, "P"], [0, 0, "k"]
     ]);
     expect(evaluate(passed, "w")).toBeGreaterThan(evaluate(blocked, "w"));
+  });
+});
+
+describe("check extensions", () => {
+  function makeBoard(rows) {
+    const b = Array.from({length: 8}, () => Array(8).fill(""));
+    for (const [r, c, p] of rows) b[r][c] = p;
+    return b;
+  }
+
+  it("finds mate-in-1 reliably", () => {
+    // Back rank mate: white rook on a1 plays Ra8#
+    // Black king on h8 trapped by pawns on g7, h7
+    const board = makeBoard([
+      [0, 7, "k"], [1, 6, "p"], [1, 7, "p"],
+      [7, 6, "K"], [7, 0, "R"]
+    ]);
+    const analysis = analyzePosition(board, "w", null, {wK:false,wQ:false,bK:false,bQ:false}, ["x"]);
+    // Ra8# is mate. Eval should be very high (mate score).
+    expect(analysis[0].eval).toBeGreaterThan(50);
   });
 });

@@ -711,13 +711,21 @@ function quiescence(board, alpha, beta, side, qd) {
   return alpha;
 }
 
-function alphaBeta(board, depth, alpha, beta, side, ep, cast) {
+function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0) {
   if (_searchAborted) return { score: 0 };
   if (checkTime()) return { score: 0 };
+
+  // Check extension
+  const inCheck = isInCheck(board, side);
+  if (inCheck && extensions < 16) {
+    depth += 1;
+    extensions += 1;
+  }
+
   if (depth <= 0) return { score: quiescence(board, alpha, beta, side, 4) };
   const legal = getLegalMoves(board, side, ep, cast);
   if (legal.length === 0) {
-    if (isInCheck(board, side)) return { score: -99999 - depth };
+    if (inCheck) return { score: -99999 - depth };
     return { score: 0 };
   }
   sortMoves(board, legal);
@@ -729,7 +737,7 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast) {
     updateCastling(nc, board, m);
     const opp = side === "w" ? "b" : "w";
     const undo = makeMove(board, m);
-    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc);
+    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions);
     unmakeMove(board, undo);
     if (_searchAborted) return { score: bestScore, move: bestMove };
     const score = -child.score;
@@ -763,7 +771,7 @@ function searchBestMoves(board, side, ep, cast, tl = 3000) {
       updateCastling(nc, board, m);
       const opp = side === "w" ? "b" : "w";
       const undo = makeMove(board, m);
-      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc);
+      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc, 0);
       unmakeMove(board, undo);
       if (_searchAborted) break;
       evs.push({ move: m, score: -child.score });
