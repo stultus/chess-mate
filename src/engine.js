@@ -634,18 +634,23 @@ export function evaluate(board, side) {
 // MOVE ORDERING (C4: in-place sort, no intermediate arrays)
 // ============================================================
 
-function moveScore(board, m) {
+function moveScore(board, m, ply) {
   let s = 0;
   const v = board[m.tr][m.tc];
   if (v) s += 10 * (PIECE_VALUES[v.toLowerCase()] || 0) - (PIECE_VALUES[board[m.fr][m.fc].toLowerCase()] || 0) + 100000;
   if (m.promo) s += PIECE_VALUES[m.promo] + 90000;
   if (m.castle) s += 50;
   if ((m.tr === 3 || m.tr === 4) && (m.tc === 3 || m.tc === 4)) s += 20;
+  // Killer move bonus (above quiets, below captures)
+  if (ply !== undefined && _killers && ply < MAX_PLY) {
+    if (isSameMove(_killers[ply][0], m)) s += 9000;
+    else if (isSameMove(_killers[ply][1], m)) s += 8000;
+  }
   return s;
 }
 
-function sortMoves(board, moves) {
-  for (let i = 0; i < moves.length; i++) moves[i]._s = moveScore(board, moves[i]);
+function sortMoves(board, moves, ply) {
+  for (let i = 0; i < moves.length; i++) moves[i]._s = moveScore(board, moves[i], ply);
   moves.sort((a, b) => b._s - a._s);
   return moves;
 }
@@ -658,6 +663,26 @@ let _searchAborted = false;
 let _nodeCount = 0;
 let _searchStart = 0;
 let _searchTimeLimit = 0;
+
+const MAX_PLY = 64;
+let _killers = null;
+
+function initKillers() {
+  _killers = new Array(MAX_PLY);
+  for (let i = 0; i < MAX_PLY; i++) _killers[i] = [null, null];
+}
+
+function isSameMove(a, b) {
+  return a && b && a.fr === b.fr && a.fc === b.fc && a.tr === b.tr && a.tc === b.tc && a.promo === b.promo;
+}
+
+function storeKiller(ply, move, board) {
+  // Don't store captures as killers
+  if (board[move.tr][move.tc]) return;
+  if (isSameMove(_killers[ply][0], move)) return;
+  _killers[ply][1] = _killers[ply][0];
+  _killers[ply][0] = move;
+}
 
 function checkTime() {
   if (++_nodeCount & 4095) return false;
@@ -719,7 +744,7 @@ function quiescence(board, alpha, beta, side, qd) {
   return alpha;
 }
 
-function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nullAllowed = true) {
+function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nullAllowed = true, ply = 0) {
   if (_searchAborted) return { score: 0 };
   if (checkTime()) return { score: 0 };
 
@@ -747,7 +772,7 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nu
     if (inCheck) return { score: -99999 - depth };
     return { score: 0 };
   }
-  sortMoves(board, legal);
+  sortMoves(board, legal, ply);
   let bestMove = legal[0], bestScore = -Infinity;
   for (let i = 0; i < legal.length; i++) {
     const m = legal[i];
@@ -756,13 +781,16 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nu
     updateCastling(nc, board, m);
     const opp = side === "w" ? "b" : "w";
     const undo = makeMove(board, m);
-    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions, true);
+    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions, true, ply + 1);
     unmakeMove(board, undo);
     if (_searchAborted) return { score: bestScore, move: bestMove };
     const score = -child.score;
     if (score > bestScore) { bestScore = score; bestMove = m; }
     if (score > alpha) alpha = score;
-    if (alpha >= beta) break;
+    if (alpha >= beta) {
+      storeKiller(ply, m, board);
+      break;
+    }
   }
   return { score: bestScore, move: bestMove };
 }
@@ -772,6 +800,7 @@ function searchBestMoves(board, side, ep, cast, tl = 3000) {
   _nodeCount = 0;
   _searchStart = Date.now();
   _searchTimeLimit = tl;
+  initKillers();
 
   let all = [];
   let cd = 0;
@@ -780,7 +809,7 @@ function searchBestMoves(board, side, ep, cast, tl = 3000) {
     const legal = getLegalMoves(board, side, ep, cast);
     if (legal.length === 0) break;
     const evs = [];
-    sortMoves(board, legal);
+    sortMoves(board, legal, 0);
     _searchAborted = false;
     for (let i = 0; i < legal.length; i++) {
       const m = legal[i];
@@ -790,7 +819,7 @@ function searchBestMoves(board, side, ep, cast, tl = 3000) {
       updateCastling(nc, board, m);
       const opp = side === "w" ? "b" : "w";
       const undo = makeMove(board, m);
-      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc, 0, true);
+      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc, 0, true, 1);
       unmakeMove(board, undo);
       if (_searchAborted) break;
       evs.push({ move: m, score: -child.score });
