@@ -93,6 +93,7 @@ export default function ChessAdvisor() {
   const [lastMove, setLastMove] = useState(null);
   const [showAbout, setShowAbout] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pendingPromo, setPendingPromo] = useState(null);
   const moveListRef = useRef(null);
   const workerRef = useRef(null);
   const analysisIdRef = useRef(0);
@@ -167,9 +168,18 @@ export default function ChessAdvisor() {
   }
 
   function handleSquareClick(r, c) {
+    if (pendingPromo) { setPendingPromo(null); return; }
     if (gameStatus !== "active" || !userColor) return;
     if (selected) {
-      if (legalTargets.some(t => t.tr === r && t.tc === c)) { executeMove(selected[0], selected[1], r, c); return; }
+      if (legalTargets.some(t => t.tr === r && t.tc === c)) {
+        const piece = board[selected[0]][selected[1]];
+        if (piece.toLowerCase() === "p" && (r === 0 || r === 7)) {
+          setPendingPromo({ fr: selected[0], fc: selected[1], tr: r, tc: c });
+          return;
+        }
+        executeMove(selected[0], selected[1], r, c);
+        return;
+      }
     }
     const piece = board[r][c];
     if (piece && pieceColor(piece) === turn) {
@@ -324,8 +334,29 @@ export default function ChessAdvisor() {
           </div>
 
           {/* Board */}
-          <div style={{ border: "3px solid #1a1916", borderRadius: 4, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.6)" }}>
+          <div style={{ border: "3px solid #1a1916", borderRadius: 4, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.6)", position: "relative" }}>
             {renderBoard()}
+            {pendingPromo && (() => {
+              const promoColor = pieceColor(board[pendingPromo.fr][pendingPromo.fc]);
+              const pieces = promoColor === "w" ? ["Q", "R", "B", "N"] : ["q", "r", "b", "n"];
+              const col = isFlipped ? 7 - pendingPromo.tc : pendingPromo.tc;
+              const fromTop = promoColor === "w" ? !isFlipped : isFlipped;
+              return (
+                <>
+                  <div onClick={() => setPendingPromo(null)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 10 }} />
+                  <div style={{ position: "absolute", left: `${col * 12.5}%`, [fromTop ? "top" : "bottom"]: 0, width: "12.5%", zIndex: 11, borderRadius: 4, overflow: "hidden", boxShadow: "0 4px 16px rgba(0,0,0,0.8)" }}>
+                    {pieces.map((p, i) => (
+                      <div key={p} onClick={() => { executeMove(pendingPromo.fr, pendingPromo.fc, pendingPromo.tr, pendingPromo.tc, p.toLowerCase()); setPendingPromo(null); }}
+                        style={{ aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", background: i % 2 === 0 ? "#ebecd0" : "#779556", cursor: "pointer", transition: "background 0.1s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#f6f669"}
+                        onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#ebecd0" : "#779556"}>
+                        <div style={PIECE_WRAPPER}>{SVG_PIECES[p](PIECE_SIZE)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", fontSize: 11, color: "#777" }}>
