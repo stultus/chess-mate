@@ -284,7 +284,7 @@ export default function ChessAdvisor() {
             <div style={{ width: 48, height: 48 }}>{SVG_PIECES.K(48)}</div>
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>Chess Mate</h1>
-          <p style={{ fontSize: 13, color: "#9b9b9b", fontFamily: "monospace", letterSpacing: 1, marginBottom: 6 }}>PREDICTIVE ANALYSIS ENGINE v2</p>
+          <p style={{ fontSize: 13, color: "#9b9b9b", fontFamily: "monospace", letterSpacing: 1, marginBottom: 6 }}>PREDICTIVE ANALYSIS ENGINE v3</p>
           <p style={{ fontSize: 11, color: "#6b6b6b", fontFamily: "monospace", marginBottom: 40 }}>Quiescence Search / Iterative Deepening / Opening Book</p>
           <p style={{ fontSize: 17, color: "#bbb", marginBottom: 28 }}>Choose your color</p>
           <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
@@ -320,7 +320,7 @@ export default function ChessAdvisor() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 28, height: 28 }}>{userColor === "w" ? SVG_PIECES.K(28) : SVG_PIECES.k(28)}</div>
           <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: .5 }}>Chess Mate</span>
-          <span style={{ fontSize: 11, color: "#7b7b7b", fontFamily: "monospace" }}>v2</span>
+          <span style={{ fontSize: 11, color: "#7b7b7b", fontFamily: "monospace" }}>v3</span>
         </div>
         <button onClick={resetGame} style={{ background: "#3c3a37", border: "1px solid #555", color: "#bbb", padding: "5px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>New Game</button>
       </div>
