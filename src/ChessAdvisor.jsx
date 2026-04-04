@@ -254,11 +254,17 @@ export default function ChessAdvisor() {
           <div style={{ background: "#262421", border: "1px solid #3c3a37", borderRadius: 6, padding: 24, lineHeight: 1.8, fontSize: 14, color: "#bbb" }}>
             <p style={{ marginBottom: 16 }}>A chess companion that analyzes positions and suggests moves in real time. No servers, no accounts — everything runs in your browser.</p>
             <div style={{ fontSize: 12, color: "#888", fontFamily: "monospace", marginBottom: 16 }}>
-              <div style={{ marginBottom: 4, color: "#666", letterSpacing: 1, textTransform: "uppercase", fontSize: 11 }}>Engine</div>
-              <div>Alpha-beta pruning with quiescence search</div>
-              <div>Iterative deepening up to depth 8</div>
+              <div style={{ marginBottom: 4, color: "#666", letterSpacing: 1, textTransform: "uppercase", fontSize: 11 }}>Search</div>
+              <div>Alpha-beta + quiescence, iterative deepening</div>
+              <div>Check extensions, null move pruning, LMR</div>
+              <div>Killer-move ordering, MVV-LVA</div>
+            </div>
+            <div style={{ fontSize: 12, color: "#888", fontFamily: "monospace", marginBottom: 16 }}>
+              <div style={{ marginBottom: 4, color: "#666", letterSpacing: 1, textTransform: "uppercase", fontSize: 11 }}>Evaluation</div>
+              <div>King safety: pawn shield, open files, attacker weights</div>
+              <div>Passed pawns: king proximity, rule of the square</div>
+              <div>Middlegame / endgame phase interpolation</div>
               <div>Opening book with common lines</div>
-              <div>Piece-square tables + positional evaluation</div>
             </div>
             <div style={{ borderTop: "1px solid #3c3a37", paddingTop: 16, fontSize: 13, color: "#999" }}>
               Built by <a href="https://stultus.in" target="_blank" rel="noopener noreferrer" style={{ color: "#81b64c", textDecoration: "none" }}>Hrishi</a>
