@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE } from "./engine.js";
+import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn } from "./engine.js";
 
 describe("engine smoke test", () => {
   it("finds kings on initial board", () => {
@@ -151,5 +151,43 @@ describe("SAFETY_TABLE", () => {
   });
   it("caps around 497", () => {
     expect(SAFETY_TABLE[69]).toBe(497);
+  });
+});
+
+describe("isPassedPawn", () => {
+  function makeBoard(rows) {
+    const b = Array.from({length: 8}, () => Array(8).fill(""));
+    for (const [r, c, p] of rows) b[r][c] = p;
+    return b;
+  }
+
+  it("detects white passed pawn with no blockers", () => {
+    const board = makeBoard([[3, 4, "P"]]);
+    expect(isPassedPawn(board, 3, 4, "w")).toBe(true);
+  });
+
+  it("rejects white pawn blocked on same file", () => {
+    const board = makeBoard([[3, 4, "P"], [2, 4, "p"]]);
+    expect(isPassedPawn(board, 3, 4, "w")).toBe(false);
+  });
+
+  it("rejects white pawn with enemy on adjacent file ahead", () => {
+    const board = makeBoard([[3, 4, "P"], [2, 5, "p"]]);
+    expect(isPassedPawn(board, 3, 4, "w")).toBe(false);
+  });
+
+  it("allows white pawn with enemy pawn on adjacent file BEHIND", () => {
+    const board = makeBoard([[3, 4, "P"], [5, 5, "p"]]);
+    expect(isPassedPawn(board, 3, 4, "w")).toBe(true);
+  });
+
+  it("detects black passed pawn", () => {
+    const board = makeBoard([[4, 3, "p"]]);
+    expect(isPassedPawn(board, 4, 3, "b")).toBe(true);
+  });
+
+  it("rejects black pawn blocked", () => {
+    const board = makeBoard([[4, 3, "p"], [5, 2, "P"]]);
+    expect(isPassedPawn(board, 4, 3, "b")).toBe(false);
   });
 });
