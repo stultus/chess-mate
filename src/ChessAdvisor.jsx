@@ -91,6 +91,7 @@ export default function ChessAdvisor() {
   const [enPassant, setEnPassant] = useState(null);
   const [gameStatus, setGameStatus] = useState("active");
   const [lastMove, setLastMove] = useState(null);
+  const [showAbout, setShowAbout] = useState(false);
   const moveListRef = useRef(null);
   const workerRef = useRef(null);
   const analysisIdRef = useRef(0);
@@ -229,6 +230,39 @@ export default function ChessAdvisor() {
     return rows;
   }
 
+  // ===== ABOUT PAGE =====
+  if (showAbout) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Segoe UI',system-ui,sans-serif", background: "#302e2b", color: "#e8e6e1", padding: 20 }}>
+        <div style={{ maxWidth: 480, width: "100%" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 20 }}>
+            <div style={{ width: 48, height: 48 }}>{SVG_PIECES.k(48)}</div>
+            <div style={{ width: 48, height: 48 }}>{SVG_PIECES.K(48)}</div>
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: 1, textAlign: "center", marginBottom: 24 }}>Chess Mate</h1>
+          <div style={{ background: "#262421", border: "1px solid #3c3a37", borderRadius: 6, padding: 24, lineHeight: 1.8, fontSize: 14, color: "#bbb" }}>
+            <p style={{ marginBottom: 16 }}>A chess companion that analyzes positions and suggests moves in real time. No servers, no accounts — everything runs in your browser.</p>
+            <div style={{ fontSize: 12, color: "#888", fontFamily: "monospace", marginBottom: 16 }}>
+              <div style={{ marginBottom: 4, color: "#666", letterSpacing: 1, textTransform: "uppercase", fontSize: 11 }}>Engine</div>
+              <div>Alpha-beta pruning with quiescence search</div>
+              <div>Iterative deepening up to depth 8</div>
+              <div>Opening book with common lines</div>
+              <div>Piece-square tables + positional evaluation</div>
+            </div>
+            <div style={{ borderTop: "1px solid #3c3a37", paddingTop: 16, fontSize: 13, color: "#999" }}>
+              Built by <a href="https://stultus.in" target="_blank" rel="noopener noreferrer" style={{ color: "#81b64c", textDecoration: "none" }}>Hrishi</a>
+              <span style={{ color: "#555", margin: "0 8px" }}>/</span>
+              <a href="https://github.com/stultus/chess-mate" target="_blank" rel="noopener noreferrer" style={{ color: "#5a9bd5", textDecoration: "none", fontSize: 12, fontFamily: "monospace" }}>source</a>
+            </div>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 20 }}>
+            <button onClick={() => setShowAbout(false)} style={{ background: "#3c3a37", border: "1px solid #555", color: "#bbb", padding: "8px 24px", borderRadius: 4, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Back</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ===== COLOR SELECT =====
   if (!userColor) {
     return (
@@ -238,7 +272,7 @@ export default function ChessAdvisor() {
             <div style={{ width: 48, height: 48 }}>{SVG_PIECES.k(48)}</div>
             <div style={{ width: 48, height: 48 }}>{SVG_PIECES.K(48)}</div>
           </div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>Chess Advisor</h1>
+          <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>Chess Mate</h1>
           <p style={{ fontSize: 13, color: "#9b9b9b", fontFamily: "monospace", letterSpacing: 1, marginBottom: 6 }}>PREDICTIVE ANALYSIS ENGINE v2</p>
           <p style={{ fontSize: 11, color: "#6b6b6b", fontFamily: "monospace", marginBottom: 40 }}>Quiescence Search / Iterative Deepening / Opening Book</p>
           <p style={{ fontSize: 17, color: "#bbb", marginBottom: 28 }}>Choose your color</p>
@@ -253,6 +287,11 @@ export default function ChessAdvisor() {
               <div style={{ marginBottom: 8 }}>{SVG_PIECES.k(52)}</div>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1 }}>BLACK</div>
             </button>
+          </div>
+          <div style={{ marginTop: 32, display: "flex", justifyContent: "center", gap: 16, fontSize: 12 }}>
+            <span style={{ color: "#666" }}>by <a href="https://stultus.in" target="_blank" rel="noopener noreferrer" style={{ color: "#81b64c", textDecoration: "none" }}>Hrishi</a></span>
+            <span style={{ color: "#444" }}>|</span>
+            <button onClick={() => setShowAbout(true)} style={{ background: "none", border: "none", color: "#5a9bd5", cursor: "pointer", fontSize: 12, fontFamily: "'Segoe UI',system-ui,sans-serif", padding: 0 }}>About</button>
           </div>
         </div>
       </div>
@@ -269,7 +308,7 @@ export default function ChessAdvisor() {
       <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #444", background: "#262421" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 28, height: 28 }}>{userColor === "w" ? SVG_PIECES.K(28) : SVG_PIECES.k(28)}</div>
-          <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: .5 }}>Chess Advisor</span>
+          <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: .5 }}>Chess Mate</span>
           <span style={{ fontSize: 11, color: "#7b7b7b", fontFamily: "monospace" }}>v2</span>
         </div>
         <button onClick={resetGame} style={{ background: "#3c3a37", border: "1px solid #555", color: "#bbb", padding: "5px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>New Game</button>
