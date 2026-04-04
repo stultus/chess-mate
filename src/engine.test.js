@@ -224,12 +224,19 @@ describe("evaluatePassedPawnBonus", () => {
   });
 
   it("applies protected multiplier (1.5x)", () => {
-    // White passer on d5 (row 3, col 3) protected by pawn on c4 (row 4, col 2)
-    const board = makeBoard([
-      [3, 3, "P"], [4, 2, "P"], [0, 4, "k"], [7, 4, "K"]
+    // White passer on d5 (row 3, col 3) protected by pawn on c4 (row 4, col 2).
+    // Black pawn on b5 (row 3, col 1) prevents c4 from being passed itself,
+    // isolating the 1.5x protected multiplier from the connected-passer bonus.
+    const withProtector = makeBoard([
+      [3, 3, "P"], [4, 2, "P"], [3, 1, "p"], [0, 4, "k"], [7, 4, "K"]
     ]);
-    const result = evaluatePassedPawnBonus(board, "w", [7, 4], [0, 4], "w");
-    expect(result).toBeGreaterThan(0);
+    const withoutProtector = makeBoard([
+      [3, 3, "P"], [3, 1, "p"], [0, 4, "k"], [7, 4, "K"]
+    ]);
+    const protectedResult = evaluatePassedPawnBonus(withProtector, "w", [7, 4], [0, 4], "w");
+    const unprotectedResult = evaluatePassedPawnBonus(withoutProtector, "w", [7, 4], [0, 4], "w");
+    // Rank-4 bonus = 25. Protected: round(25 * 1.5) = 38. Difference = 13.
+    expect(protectedResult - unprotectedResult).toBe(13);
   });
 
   it("returns 0 when no passed pawns", () => {

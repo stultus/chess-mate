@@ -103,11 +103,16 @@ export function isPassedPawn(board, r, c, side) {
 
 export const PASSED_BONUS = [0, 0, 5, 12, 25, 50, 100, 200];
 
-function pieceAtCanIntercept(board, side) {
-  // Returns true if enemy has any non-king, non-pawn piece that could potentially intercept
+function canEnemyPieceIntercept(board, side, distToPromo, promoRow, promoCol) {
+  // Returns true if enemy has any non-king, non-pawn piece close enough to the
+  // promotion square to plausibly reach it before the pawn promotes. Uses
+  // Chebyshev distance as an upper-bound approximation (exact for queens/king,
+  // loose for knights/sliders).
   const enemyNonKingNonPawn = side === "w" ? /[nbrq]/ : /[NBRQ]/;
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-    if (board[r][c] && enemyNonKingNonPawn.test(board[r][c])) return true;
+    if (!board[r][c] || !enemyNonKingNonPawn.test(board[r][c])) continue;
+    const dist = Math.max(Math.abs(r - promoRow), Math.abs(c - promoCol));
+    if (dist <= distToPromo) return true;
   }
   return false;
 }
@@ -158,7 +163,7 @@ export function evaluatePassedPawnBonus(board, side, friendlyKingSq, enemyKingSq
     const distToPromo = Math.abs(promoRow - r);
     const enemyKingDistToPromo = chebyshevDistance(enemyKingSq[0], enemyKingSq[1], promoRow, promoCol);
     const tempo = sideToMove === side ? 0 : 1;
-    const unstoppable = (enemyKingDistToPromo - tempo) > distToPromo && !pieceAtCanIntercept(board, side);
+    const unstoppable = (enemyKingDistToPromo - tempo) > distToPromo && !canEnemyPieceIntercept(board, side, distToPromo, promoRow, promoCol);
     total += bonus + Math.round(proximity) + (unstoppable ? 500 : 0);
   }
   return total;
@@ -634,7 +639,7 @@ export function evaluate(board, side) {
 // MOVE ORDERING (C4: in-place sort, no intermediate arrays)
 // ============================================================
 
-function moveScore(board, m, ply) {
+function moveScore(board, m, killer0, killer1) {
   let s = 0;
   const v = board[m.tr][m.tc];
   if (v) s += 10 * (PIECE_VALUES[v.toLowerCase()] || 0) - (PIECE_VALUES[board[m.fr][m.fc].toLowerCase()] || 0) + 100000;
@@ -642,15 +647,17 @@ function moveScore(board, m, ply) {
   if (m.castle) s += 50;
   if ((m.tr === 3 || m.tr === 4) && (m.tc === 3 || m.tc === 4)) s += 20;
   // Killer move bonus (above quiets, below captures)
-  if (ply !== undefined && _killers && ply < MAX_PLY) {
-    if (isSameMove(_killers[ply][0], m)) s += 9000;
-    else if (isSameMove(_killers[ply][1], m)) s += 8000;
-  }
+  if (isSameMove(killer0, m)) s += 9000;
+  else if (isSameMove(killer1, m)) s += 8000;
   return s;
 }
 
 function sortMoves(board, moves, ply) {
-  for (let i = 0; i < moves.length; i++) moves[i]._s = moveScore(board, moves[i], ply);
+  // Hoist killer lookup out of the per-move scoring loop
+  const hasKillers = _killers && ply !== undefined && ply < MAX_PLY;
+  const k0 = hasKillers ? _killers[ply][0] : null;
+  const k1 = hasKillers ? _killers[ply][1] : null;
+  for (let i = 0; i < moves.length; i++) moves[i]._s = moveScore(board, moves[i], k0, k1);
   moves.sort((a, b) => b._s - a._s);
   return moves;
 }
@@ -750,7 +757,7 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nu
 
   // Check extension
   const inCheck = isInCheck(board, side);
-  if (inCheck && extensions < 16) {
+  if (inCheck && extensions < 6) {
     depth += 1;
     extensions += 1;
   }
@@ -761,6 +768,10 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nu
   if (nullAllowed && !inCheck && depth >= 3 && hasNonPawnMaterial(board, side)) {
     const R = depth > 6 ? 3 : 2;
     const opp = side === "w" ? "b" : "w";
+    // Pass null for ep: after a null move, any pending en-passant target from
+    // our side becomes stale (en-passant is only valid on the immediate next
+    // ply). Our own ep parameter is preserved in this stack frame and applies
+    // again when the search resumes on our real moves.
     const nullChild = alphaBeta(board, depth - 1 - R, -beta, -beta + 1, opp, null, cast, extensions, false);
     const nullScore = -nullChild.score;
     if (_searchAborted) return { score: 0 };
