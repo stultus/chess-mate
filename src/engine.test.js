@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn, evaluatePassedPawnBonus, PASSED_BONUS } from "./engine.js";
+import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE, isPassedPawn, evaluatePassedPawnBonus, PASSED_BONUS, evaluate } from "./engine.js";
 
 describe("engine smoke test", () => {
   it("finds kings on initial board", () => {
@@ -238,5 +238,40 @@ describe("evaluatePassedPawnBonus", () => {
     ]);
     const result = evaluatePassedPawnBonus(board, "w", [7, 4], [0, 4], "w");
     expect(result).toBe(0);
+  });
+});
+
+describe("evaluate with new terms", () => {
+  function makeBoard(rows) {
+    const b = Array.from({length: 8}, () => Array(8).fill(""));
+    for (const [r, c, p] of rows) b[r][c] = p;
+    return b;
+  }
+
+  it("prefers castled king with pawn shield over exposed king (middlegame)", () => {
+    // Add queens and rooks to both sides so phase > 0 and king safety matters
+    const safe = makeBoard([
+      [7, 6, "K"], [6, 5, "P"], [6, 6, "P"], [6, 7, "P"],
+      [7, 0, "R"], [7, 7, "R"], [7, 3, "Q"],
+      [0, 4, "k"], [1, 3, "p"], [1, 4, "p"], [1, 5, "p"],
+      [0, 0, "r"], [0, 7, "r"], [0, 3, "q"]
+    ]);
+    const exposed = makeBoard([
+      [4, 4, "K"], [6, 5, "P"], [6, 6, "P"], [6, 7, "P"],
+      [7, 0, "R"], [7, 7, "R"], [7, 3, "Q"],
+      [0, 4, "k"], [1, 3, "p"], [1, 4, "p"], [1, 5, "p"],
+      [0, 0, "r"], [0, 7, "r"], [0, 3, "q"]
+    ]);
+    expect(evaluate(safe, "w")).toBeGreaterThan(evaluate(exposed, "w"));
+  });
+
+  it("values advanced passed pawn higher than blocked pawn", () => {
+    const passed = makeBoard([
+      [7, 4, "K"], [1, 0, "P"], [0, 7, "k"]
+    ]);
+    const blocked = makeBoard([
+      [7, 4, "K"], [1, 0, "P"], [0, 0, "k"]
+    ]);
+    expect(evaluate(passed, "w")).toBeGreaterThan(evaluate(blocked, "w"));
   });
 });

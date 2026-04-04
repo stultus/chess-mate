@@ -295,6 +295,26 @@ export function isSquareAttacked(board, r, c, bySide) {
   return false;
 }
 
+function pieceAttacksZone(board, r, c, type, kr, kc) {
+  if (type === "n") {
+    for (let i = 0; i < 8; i++) {
+      const nr = r + KNIGHT_OFFSETS[i][0], nc = c + KNIGHT_OFFSETS[i][1];
+      if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && inKingZone(kr, kc, nr, nc)) return true;
+    }
+    return false;
+  }
+  const dirs = type === "r" ? STRAIGHT_DIRS : type === "b" ? DIAG_DIRS : STRAIGHT_DIRS.concat(DIAG_DIRS);
+  for (const [dr, dc] of dirs) {
+    let nr = r + dr, nc = c + dc;
+    while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+      if (inKingZone(kr, kc, nr, nc)) return true;
+      if (board[nr][nc]) break;
+      nr += dr; nc += dc;
+    }
+  }
+  return false;
+}
+
 // ============================================================
 // KING / CHECK
 // ============================================================
@@ -518,40 +538,62 @@ export function getLegalMoves(board, side, enPassant, castling) {
 // EVALUATION (C6: single pass for material + PST)
 // ============================================================
 
-function evaluate(board, side) {
-  let score = 0;
-  let totalMat = 0;
+export function evaluate(board, side) {
+  let mgScore = 0, egScore = 0;
   let wB = 0, bB = 0;
   let wKr = 0, wKc = 0, bKr = 0, bKc = 0;
+  let wAttackerCount = 0, wAttackWeight = 0;
+  let bAttackerCount = 0, bAttackWeight = 0;
+  let phasePoints = 0;
 
-  // Single pass: material, PST (non-king), and collect king positions
+  // First find kings (needed for attacker counting)
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    if (board[r][c] === "K") { wKr = r; wKc = c; }
+    else if (board[r][c] === "k") { bKr = r; bKc = c; }
+  }
+
+  // Main piece loop: material, PST, phase, attacker counting
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
     const p = board[r][c];
     if (!p) continue;
     const t = p.toLowerCase();
+    if (t === "k") continue;
     const val = PIECE_VALUES[t] || 0;
     const w = isWhite(p);
-    if (t === "k") {
-      if (w) { wKr = r; wKc = c; } else { bKr = r; bKc = c; }
-      continue;
-    }
-    totalMat += val;
+    const phW = PHASE_WEIGHTS[t];
+    if (phW) phasePoints += phW;
     const pi = w ? r * 8 + c : (7 - r) * 8 + c;
     const pv = PST[t] ? PST[t][pi] : 0;
-    if (w) { score += val + pv; if (t === "b") wB++; }
-    else { score -= val + pv; if (t === "b") bB++; }
+    if (w) { mgScore += val + pv; if (t === "b") wB++; }
+    else { mgScore -= val + pv; if (t === "b") bB++; }
+
+    // Attacker counting: does this piece attack enemy king zone?
+    if (t !== "p") {
+      const enemyKr = w ? bKr : wKr;
+      const enemyKc = w ? bKc : wKc;
+      const aw = ATTACK_WEIGHTS[t];
+      if (aw && pieceAttacksZone(board, r, c, t, enemyKr, enemyKc)) {
+        if (w) { wAttackerCount++; wAttackWeight += aw; }
+        else { bAttackerCount++; bAttackWeight += aw; }
+      }
+    }
   }
 
-  // King PST (depends on endgame detection)
-  const kpst = totalMat < 2600 ? "k_end" : "k";
-  score += PIECE_VALUES.k + PST[kpst][wKr * 8 + wKc];
-  score -= PIECE_VALUES.k + PST[kpst][(7 - bKr) * 8 + bKc];
+  // Copy material+PST from mg to eg (material/PST unphased for now)
+  egScore = mgScore;
 
-  // Bishop pair bonus
-  if (wB >= 2) score += 30;
-  if (bB >= 2) score -= 30;
+  // King PST (different for mg vs eg)
+  const phase = Math.round((Math.min(phasePoints, MAX_PHASE) / MAX_PHASE) * 256);
+  mgScore += PIECE_VALUES.k + PST.k[wKr * 8 + wKc];
+  mgScore -= PIECE_VALUES.k + PST.k[(7 - bKr) * 8 + bKc];
+  egScore += PIECE_VALUES.k + PST.k_end[wKr * 8 + wKc];
+  egScore -= PIECE_VALUES.k + PST.k_end[(7 - bKr) * 8 + bKc];
 
-  // Open/semi-open files for rooks, passed pawns
+  // Bishop pair
+  if (wB >= 2) { mgScore += 30; egScore += 30; }
+  if (bB >= 2) { mgScore -= 30; egScore -= 30; }
+
+  // Open/semi-open files for rooks (unchanged from original)
   for (let c = 0; c < 8; c++) {
     let wP = 0, bP = 0, wR = false, bR = false;
     for (let r = 0; r < 8; r++) {
@@ -561,29 +603,31 @@ function evaluate(board, side) {
       if (p === "R") wR = true;
       if (p === "r") bR = true;
     }
-    if (wR && wP === 0) score += bP === 0 ? 25 : 12;
-    if (bR && bP === 0) score -= wP === 0 ? 25 : 12;
+    if (wR && wP === 0) { const b = bP === 0 ? 25 : 12; mgScore += b; egScore += b; }
+    if (bR && bP === 0) { const b = wP === 0 ? 25 : 12; mgScore -= b; egScore -= b; }
   }
 
-  // Passed pawns
-  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-    if (board[r][c] === "P") {
-      let passed = true;
-      for (let rr = r - 1; rr >= 0 && passed; rr--)
-        for (let cc = Math.max(0, c - 1); cc <= Math.min(7, c + 1); cc++)
-          if (board[rr][cc] === "p") { passed = false; break; }
-      if (passed) score += (7 - r) * 10;
-    }
-    if (board[r][c] === "p") {
-      let passed = true;
-      for (let rr = r + 1; rr <= 7 && passed; rr++)
-        for (let cc = Math.max(0, c - 1); cc <= Math.min(7, c + 1); cc++)
-          if (board[rr][cc] === "P") { passed = false; break; }
-      if (passed) score -= r * 10;
-    }
-  }
+  // King safety (middlegame only)
+  let kingSafetyMg = 0;
+  kingSafetyMg += evaluatePawnShield(board, [wKr, wKc], "w");
+  kingSafetyMg -= evaluatePawnShield(board, [bKr, bKc], "b");
+  kingSafetyMg += evaluateOpenFilesNearKing(board, [wKr, wKc], "w");
+  kingSafetyMg -= evaluateOpenFilesNearKing(board, [bKr, bKc], "b");
+  if (bAttackerCount >= 2) kingSafetyMg -= SAFETY_TABLE[Math.min(bAttackWeight, SAFETY_TABLE.length - 1)];
+  if (wAttackerCount >= 2) kingSafetyMg += SAFETY_TABLE[Math.min(wAttackWeight, SAFETY_TABLE.length - 1)];
+  mgScore += kingSafetyMg;
 
-  return side === "w" ? score : -score;
+  // Passed pawns (phase interpolated: mg gets 50%, eg gets 100%)
+  const wPassedEg = evaluatePassedPawnBonus(board, "w", [wKr, wKc], [bKr, bKc], side);
+  const bPassedEg = evaluatePassedPawnBonus(board, "b", [bKr, bKc], [wKr, wKc], side);
+  egScore += wPassedEg;
+  egScore -= bPassedEg;
+  mgScore += Math.round(wPassedEg * 0.5);
+  mgScore -= Math.round(bPassedEg * 0.5);
+
+  // Blend
+  const finalScore = Math.round((mgScore * phase + egScore * (256 - phase)) / 256);
+  return side === "w" ? finalScore : -finalScore;
 }
 
 // ============================================================
