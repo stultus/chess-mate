@@ -73,6 +73,7 @@ export function pieceColor(p) { return !p ? null : isWhite(p) ? "w" : "b"; }
 export function coordToAlg(r, c) { return String.fromCharCode(97 + c) + (8 - r); }
 export function algToCoord(a) { return [8 - parseInt(a[1]), a.charCodeAt(0) - 97]; }
 export function moveToAlg(fr, fc, tr, tc) { return coordToAlg(fr, fc) + coordToAlg(tr, tc); }
+export function chebyshevDistance(r1, c1, r2, c2) { return Math.max(Math.abs(r1 - r2), Math.abs(c1 - c2)); }
 
 // ============================================================
 // ATTACK DETECTION (C1: reverse ray-casting, no move generation)
