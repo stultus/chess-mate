@@ -688,6 +688,14 @@ function updateCastling(nc, board, m) {
   if (m.tr === 0 && m.tc === 0) nc.bQ = false;
 }
 
+function hasNonPawnMaterial(board, side) {
+  const pieces = side === "w" ? /[NBRQ]/ : /[nbrq]/;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    if (board[r][c] && pieces.test(board[r][c])) return true;
+  }
+  return false;
+}
+
 function quiescence(board, alpha, beta, side, qd) {
   if (_searchAborted) return 0;
   const sp = evaluate(board, side);
@@ -711,7 +719,7 @@ function quiescence(board, alpha, beta, side, qd) {
   return alpha;
 }
 
-function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0) {
+function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nullAllowed = true) {
   if (_searchAborted) return { score: 0 };
   if (checkTime()) return { score: 0 };
 
@@ -723,6 +731,17 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0) {
   }
 
   if (depth <= 0) return { score: quiescence(board, alpha, beta, side, 4) };
+
+  // Null move pruning
+  if (nullAllowed && !inCheck && depth >= 3 && hasNonPawnMaterial(board, side)) {
+    const R = depth > 6 ? 3 : 2;
+    const opp = side === "w" ? "b" : "w";
+    const nullChild = alphaBeta(board, depth - 1 - R, -beta, -beta + 1, opp, null, cast, extensions, false);
+    const nullScore = -nullChild.score;
+    if (_searchAborted) return { score: 0 };
+    if (nullScore >= beta) return { score: beta };
+  }
+
   const legal = getLegalMoves(board, side, ep, cast);
   if (legal.length === 0) {
     if (inCheck) return { score: -99999 - depth };
@@ -737,7 +756,7 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0) {
     updateCastling(nc, board, m);
     const opp = side === "w" ? "b" : "w";
     const undo = makeMove(board, m);
-    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions);
+    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions, true);
     unmakeMove(board, undo);
     if (_searchAborted) return { score: bestScore, move: bestMove };
     const score = -child.score;
@@ -771,7 +790,7 @@ function searchBestMoves(board, side, ep, cast, tl = 3000) {
       updateCastling(nc, board, m);
       const opp = side === "w" ? "b" : "w";
       const undo = makeMove(board, m);
-      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc, 0);
+      const child = alphaBeta(board, d - 1, -Infinity, Infinity, opp, nep, nc, 0, true);
       unmakeMove(board, undo);
       if (_searchAborted) break;
       evs.push({ move: m, score: -child.score });

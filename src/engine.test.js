@@ -295,3 +295,13 @@ describe("check extensions", () => {
     expect(analysis[0].eval).toBeGreaterThan(50);
   });
 });
+
+describe("null move pruning sanity", () => {
+  it("still suggests reasonable opening moves", () => {
+    const analysis = analyzePosition(INITIAL_BOARD, "w", null, {wK:true,wQ:true,bK:true,bQ:true}, []);
+    expect(analysis.length).toBeGreaterThan(0);
+    // Top move should be a known opening
+    const topAlg = analysis[0].alg;
+    expect(["e2e4", "d2d4", "c2c4", "g1f3"]).toContain(topAlg);
+  });
+});
