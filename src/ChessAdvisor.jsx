@@ -285,7 +285,7 @@ export default function ChessAdvisor() {
           </div>
           <h1 style={{ fontSize: 32, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>Chess Mate</h1>
           <p style={{ fontSize: 13, color: "#9b9b9b", fontFamily: "monospace", letterSpacing: 1, marginBottom: 6 }}>PREDICTIVE ANALYSIS ENGINE v3</p>
-          <p style={{ fontSize: 11, color: "#6b6b6b", fontFamily: "monospace", marginBottom: 40 }}>Quiescence Search / Iterative Deepening / Opening Book</p>
+          <p style={{ fontSize: 11, color: "#6b6b6b", fontFamily: "monospace", marginBottom: 40 }}>Tactical Search / Endgame Evaluation / Opening Book</p>
           <p style={{ fontSize: 17, color: "#bbb", marginBottom: 28 }}>Choose your color</p>
           <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
             <button onClick={() => setUserColor("w")} style={{ width: 150, padding: "24px 16px", background: "#ebecd0", color: "#302e2b", border: "3px solid #779556", borderRadius: 8, cursor: "pointer", fontFamily: "'Segoe UI',system-ui,sans-serif", transition: "transform 0.15s" }}
