@@ -19,6 +19,42 @@ export function computePhase(board) {
   return phase;
 }
 
+export function evaluatePawnShield(board, kingSq, side) {
+  const [kr, kc] = kingSq;
+  const backRank = side === "w" ? 7 : 0;
+  if (kr !== backRank) return 0;
+  // Only evaluate shield for castled-style king positions (not center)
+  if (kc > 2 && kc < 5) return 0;
+
+  const pawn = side === "w" ? "P" : "p";
+  const pawnStartRank = side === "w" ? 6 : 1;
+  // Direction from king's back rank toward center (away from king)
+  const searchStep = side === "w" ? -1 : 1;
+
+  // Determine 3 shield files
+  const files = kc >= 5 ? [5, 6, 7] : [0, 1, 2];
+
+  let penalty = 0;
+  for (const f of files) {
+    // Find friendly pawn on this file, closest to king
+    let foundRank = -1;
+    // Start at pawn start rank, search away from king (toward opponent)
+    for (let r = pawnStartRank; r >= 0 && r <= 7; r += searchStep) {
+      if (board[r][f] === pawn) { foundRank = r; break; }
+    }
+    if (foundRank === -1) {
+      penalty -= 25; // missing
+    } else {
+      const advance = Math.abs(foundRank - pawnStartRank);
+      if (advance === 0) penalty -= 0;
+      else if (advance === 1) penalty -= 10;
+      else if (advance === 2) penalty -= 20;
+      else penalty -= 25;
+    }
+  }
+  return penalty;
+}
+
 const PST = {
   p: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,27,27,10,5,5,0,0,0,25,25,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-25,-25,10,10,5,0,0,0,0,0,0,0,0],
   n: [-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50],
