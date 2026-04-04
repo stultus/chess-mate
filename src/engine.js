@@ -780,11 +780,26 @@ function alphaBeta(board, depth, alpha, beta, side, ep, cast, extensions = 0, nu
     const nc = { ...cast };
     updateCastling(nc, board, m);
     const opp = side === "w" ? "b" : "w";
+    const isCapture = !!board[m.tr][m.tc];
+    const isKiller = _killers && ply < MAX_PLY && (isSameMove(_killers[ply][0], m) || isSameMove(_killers[ply][1], m));
     const undo = makeMove(board, m);
-    const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions, true, ply + 1);
+    let score;
+    // LMR: reduce late, quiet, non-killer moves when not in check and at sufficient depth
+    const canReduce = !inCheck && depth >= 3 && i >= 4 && !isCapture && !m.promo && !isKiller;
+    if (canReduce) {
+      const reducedChild = alphaBeta(board, depth - 2, -alpha - 1, -alpha, opp, nep, nc, extensions, true, ply + 1);
+      score = -reducedChild.score;
+      if (score > alpha) {
+        // Re-search at full depth
+        const fullChild = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions, true, ply + 1);
+        score = -fullChild.score;
+      }
+    } else {
+      const child = alphaBeta(board, depth - 1, -beta, -alpha, opp, nep, nc, extensions, true, ply + 1);
+      score = -child.score;
+    }
     unmakeMove(board, undo);
     if (_searchAborted) return { score: bestScore, move: bestMove };
-    const score = -child.score;
     if (score > bestScore) { bestScore = score; bestMove = m; }
     if (score > alpha) alpha = score;
     if (alpha >= beta) {
