@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing } from "./engine.js";
+import { INITIAL_BOARD, findKing, computePhase, chebyshevDistance, evaluatePawnShield, evaluateOpenFilesNearKing, inKingZone, SAFETY_TABLE } from "./engine.js";
 
 describe("engine smoke test", () => {
   it("finds kings on initial board", () => {
@@ -124,5 +124,32 @@ describe("evaluateOpenFilesNearKing", () => {
     const board = makeBoard([[7, 6, "K"]]);
     // f, g, h files all fully open = -75
     expect(evaluateOpenFilesNearKing(board, [7, 6], "w")).toBe(-75);
+  });
+});
+
+describe("inKingZone", () => {
+  it("returns true for adjacent squares", () => {
+    expect(inKingZone(3, 3, 3, 4)).toBe(true);
+    expect(inKingZone(3, 3, 4, 4)).toBe(true);
+    expect(inKingZone(3, 3, 2, 2)).toBe(true);
+  });
+  it("returns true for king square itself", () => {
+    expect(inKingZone(3, 3, 3, 3)).toBe(true);
+  });
+  it("returns false for distant squares", () => {
+    expect(inKingZone(3, 3, 5, 5)).toBe(false);
+    expect(inKingZone(0, 0, 2, 0)).toBe(false);
+  });
+});
+
+describe("SAFETY_TABLE", () => {
+  it("has 70 entries with monotonic non-decreasing values", () => {
+    expect(SAFETY_TABLE.length).toBe(70);
+    for (let i = 1; i < SAFETY_TABLE.length; i++) {
+      expect(SAFETY_TABLE[i]).toBeGreaterThanOrEqual(SAFETY_TABLE[i - 1]);
+    }
+  });
+  it("caps around 497", () => {
+    expect(SAFETY_TABLE[69]).toBe(497);
   });
 });
