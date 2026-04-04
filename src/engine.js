@@ -4,6 +4,21 @@
 
 export const PIECE_VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 
+const PHASE_WEIGHTS = { n: 1, b: 1, r: 2, q: 4 };
+const MAX_PHASE = 24;
+
+export function computePhase(board) {
+  let total = 0;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const p = board[r][c];
+    if (!p) continue;
+    const w = PHASE_WEIGHTS[p.toLowerCase()];
+    if (w) total += w;
+  }
+  const phase = Math.round((Math.min(total, MAX_PHASE) / MAX_PHASE) * 256);
+  return phase;
+}
+
 const PST = {
   p: [0,0,0,0,0,0,0,0,50,50,50,50,50,50,50,50,10,10,20,30,30,20,10,10,5,5,10,27,27,10,5,5,0,0,0,25,25,0,0,0,5,-5,-10,0,0,-10,-5,5,5,10,10,-25,-25,10,10,5,0,0,0,0,0,0,0,0],
   n: [-50,-40,-30,-30,-30,-30,-40,-50,-40,-20,0,0,0,0,-20,-40,-30,0,10,15,15,10,0,-30,-30,5,15,20,20,15,5,-30,-30,0,15,20,20,15,0,-30,-30,5,10,15,15,10,5,-30,-40,-20,0,5,5,0,-20,-40,-50,-40,-30,-30,-30,-30,-40,-50],
