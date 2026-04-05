@@ -94,9 +94,12 @@ export default function ChessAdvisor() {
   const [showAbout, setShowAbout] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pendingPromo, setPendingPromo] = useState(null);
+  const [history, setHistory] = useState([]);
   const moveListRef = useRef(null);
   const workerRef = useRef(null);
   const analysisIdRef = useRef(0);
+  const historyRef = useRef([]);
+  useEffect(() => { historyRef.current = history; }, [history]);
 
   // I3: Web Worker for engine analysis
   useEffect(() => {
@@ -160,11 +163,32 @@ export default function ChessAdvisor() {
     if (tr === 7 && tc === 7) nc.wK = false; if (tr === 7 && tc === 0) nc.wQ = false; if (tr === 0 && tc === 7) nc.bK = false; if (tr === 0 && tc === 0) nc.bQ = false;
     const ne = (type === "p" && Math.abs(tr - fr) === 2) ? [(fr + tr) / 2, fc] : null;
     const nt = turn === "w" ? "b" : "w";
+    // Snapshot current state for undo
+    setHistory(prev => [...prev, { board, turn, moveHistory, castling, enPassant, gameStatus, lastMove }]);
     setBoard(newBoard); setTurn(nt); setMoveHistory(nh);
     setMoveList(prev => [...prev, { san, turn, moveNum: Math.floor(prev.length / 2) + 1 }]);
     setCastling(nc); setEnPassant(ne); setSelected(null); setLegalTargets([]);
     setHighlightedSugg(null); setLastMove({ fr, fc, tr, tc });
     checkGameEnd(newBoard, nt, ne, nc);
+  }
+
+  function undoMove() {
+    const stack = historyRef.current;
+    if (stack.length === 0) return;
+    const prev = stack[stack.length - 1];
+    setHistory(h => h.slice(0, -1));
+    setBoard(prev.board);
+    setTurn(prev.turn);
+    setMoveHistory(prev.moveHistory);
+    setMoveList(ml => ml.slice(0, -1));
+    setCastling(prev.castling);
+    setEnPassant(prev.enPassant);
+    setGameStatus(prev.gameStatus);
+    setLastMove(prev.lastMove);
+    setSelected(null);
+    setLegalTargets([]);
+    setHighlightedSugg(null);
+    setPendingPromo(null);
   }
 
   function handleSquareClick(r, c) {
@@ -194,7 +218,22 @@ export default function ChessAdvisor() {
     setBoard(INITIAL_BOARD.map(r => [...r])); setTurn("w"); setMoveHistory([]); setMoveList([]);
     setSelected(null); setLegalTargets([]); setAnalysis([]); setCastling({ wK: true, wQ: true, bK: true, bQ: true });
     setEnPassant(null); setGameStatus("active"); setHighlightedSugg(null); setUserColor(null); setLastMove(null);
+    setHistory([]); setPendingPromo(null);
   }
+
+  // Keyboard shortcut: Cmd/Ctrl+Z to undo
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
+        if (historyRef.current.length > 0) {
+          e.preventDefault();
+          undoMove();
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Compute check state once for the board
   const kp = useMemo(() => findKing(board, turn), [board, turn]);
@@ -328,7 +367,10 @@ export default function ChessAdvisor() {
           <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: .5 }}>Chess Mate</span>
           <span style={{ fontSize: 11, color: "#7b7b7b", fontFamily: "monospace" }}>v3</span>
         </div>
-        <button onClick={resetGame} style={{ background: "#3c3a37", border: "1px solid #555", color: "#bbb", padding: "5px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>New Game</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={undoMove} disabled={history.length === 0} title="Undo last move (⌘Z / Ctrl+Z)" style={{ background: history.length === 0 ? "#2a2826" : "#3c3a37", border: "1px solid #555", color: history.length === 0 ? "#555" : "#bbb", padding: "5px 14px", borderRadius: 4, cursor: history.length === 0 ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 600 }}>↶ Undo</button>
+          <button onClick={resetGame} style={{ background: "#3c3a37", border: "1px solid #555", color: "#bbb", padding: "5px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>New Game</button>
+        </div>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexWrap: "wrap", padding: "12px", maxWidth: 1100, margin: "0 auto", width: "100%", gap: 12 }}>
